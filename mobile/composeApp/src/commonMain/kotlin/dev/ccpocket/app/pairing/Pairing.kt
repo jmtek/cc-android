@@ -65,8 +65,12 @@ object Pairing {
             .also { upsert(it); setActive(it.accountId) }
     }
 
-    /** The relay this app pairs against (the daemon dials the same one). Override in Advanced if self-hosting. */
-    const val DEFAULT_RELAY = "wss://pocket.ark-nexus.cc"
+    /**
+     * The relay this app pairs against — must match the one the daemon dials (its BUILTIN_RELAY, or
+     * whatever CC_POCKET_RELAY / --relay points it at), because `resolveCode` redeems the 6-digit code
+     * on this host. There is no in-app override: changing relays means rebuilding the app.
+     */
+    const val DEFAULT_RELAY = "ws://3.131.97.159:9000"
 
     /** Resolve a 6-digit code typed by the user into the full pairing info (relay-assisted path). */
     suspend fun resolveCode(code: String, client: HttpClient): PairingInfo {
