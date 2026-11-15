@@ -157,7 +157,12 @@ class SessionRegistry(
     suspend fun busySessionIds(): Set<String> =
         mutex.withLock { convos.values.filter { it.hasBackgroundWork() }.mapNotNull { it.sessionId }.toSet() }
 
-    suspend fun sendPrompt(p: SendPrompt) = get(p.convoId)?.sendPrompt(p.text, p.images) ?: Unit
+    /** False = the convoId is stale (e.g. reaped after a disconnect) — the caller should tell the phone. */
+    suspend fun sendPrompt(p: SendPrompt): Boolean {
+        val convo = get(p.convoId) ?: return false
+        convo.sendPrompt(p.text, p.images)
+        return true
+    }
     suspend fun verdict(v: PermissionVerdict) = get(v.convoId)?.submitVerdict(v) ?: Unit
     suspend fun switchDir(s: SwitchDirectory) = get(s.convoId)?.switchDirectory(Path.of(s.workdir)) ?: Unit
     suspend fun switchMode(s: SwitchMode) = get(s.convoId)?.switchMode(s.mode) ?: Unit

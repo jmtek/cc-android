@@ -63,7 +63,10 @@ class RequestRouter(
                 }
             }
 
-            is SendPrompt -> registry.sendPrompt(frame)
+            // a prompt for a reaped/unknown convo must not vanish silently — the phone's UI may still
+            // be sitting in that chat after a reconnect; tell it to reopen the session instead
+            is SendPrompt -> if (!registry.sendPrompt(frame))
+                sink.emit(PocketError("stale_convo", "session no longer active — reopen it from the session list", frame.convoId))
             // a verdict may resolve a SHELL ask (issue #3) or an agent tool ask — shell claims its own by askId
             is PermissionVerdict -> if (!shell.onVerdict(frame)) registry.verdict(frame)
             is SwitchMode -> registry.switchMode(frame)
