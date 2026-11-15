@@ -32,8 +32,18 @@ import kotlinx.serialization.decodeFromString
 import java.net.Inet4Address
 import java.net.NetworkInterface
 
-/** Production relay; users connect here by default so `run`/`service-install` need no URL. */
-const val DEFAULT_RELAY = "wss://pocket.ark-nexus.cc"
+/** Env var that redirects the daemon at a different relay without a rebuild or a `--relay` flag. */
+const val RELAY_ENV = "CC_POCKET_RELAY"
+
+/** Baked-in relay, used when neither `--relay` nor [RELAY_ENV] says otherwise. */
+const val BUILTIN_RELAY = "ws://3.131.97.159:9000"
+
+/**
+ * The relay `run`/`service-install` dial when no URL is given: [RELAY_ENV] if it is set to something
+ * non-blank, else [BUILTIN_RELAY]. An explicit `--relay` still wins over both. Resolved once at class
+ * init so every echo and the installed service unit agree on one value for the life of the process.
+ */
+val DEFAULT_RELAY: String = System.getenv(RELAY_ENV)?.trim().takeUnless { it.isNullOrEmpty() } ?: BUILTIN_RELAY
 
 /** Pick the most likely LAN IPv4 address: a physical, non-virtual site-local (RFC1918) address. */
 fun lanIp(): String? {
@@ -67,7 +77,7 @@ private class RunCmd : CliktCommand(name = "run") {
     private val port by option().int().default(8765)
     private val claudeBin by option("--claude-bin", help = "claude executable (default: auto-detect the installed Claude Code)")
     private val codexBin by option("--codex-bin", help = "codex executable (default: auto-detect the installed Codex CLI)")
-    private val relay by option("--relay", help = "relay wss base").default(DEFAULT_RELAY)
+    private val relay by option("--relay", help = "relay ws/wss base (default: \$$RELAY_ENV, else $BUILTIN_RELAY)").default(DEFAULT_RELAY)
     private val local by option("--local", help = "run a LAN-only WebSocket server instead of dialing the relay").flag()
     private val pairPort by option("--pair-port", help = "loopback port for the `pair` command").int().default(8799)
     private val takeover by option("--takeover", help = "if another cc-pocket daemon is already running, stop it and run this one instead (default: exit and leave it running)").flag()
